@@ -2,6 +2,7 @@
 // Copyright (c) 2014-2016 XDN developers
 // Copyright (c) 2006-2013 Andrey N.Sabelnikov, www.sabelnikov.net
 // Copyright (c) 2016-2017 The Karbowanec developers
+// Copyright (c) 2018 The Brazukcoin developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -12,6 +13,9 @@
 #include <sstream>
 
 #ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include <Windows.h>
 #else
 #include <unistd.h>
@@ -42,6 +46,24 @@ void AsyncConsoleReader::start() {
 bool AsyncConsoleReader::getline(std::string& line) {
   return m_queue.pop(line);
 }
+
+void AsyncConsoleReader::pause() {
+  if (m_stop) {
+    return;
+  }
+
+  m_stop = true;
+
+  if (m_thread.joinable()) {
+    m_thread.join();
+  }
+
+  m_thread = std::thread();
+}
+
+void AsyncConsoleReader::unpause() {
+  start();
+} 
 
 void AsyncConsoleReader::stop() {
 
@@ -155,6 +177,14 @@ void ConsoleHandler::stop() {
   wait();
 }
 
+void ConsoleHandler::pause() {
+  m_consoleReader.pause();
+}
+
+void ConsoleHandler::unpause() {
+  m_consoleReader.unpause();
+}
+  
 void ConsoleHandler::wait() {
 
   try {
