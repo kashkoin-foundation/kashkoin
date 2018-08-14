@@ -1,7 +1,6 @@
 // Copyright (c) 2012-2016, The CryptoNote developers, The Bytecoin developers
 // Copyright (c) 2014-2016 XDN developers
-// Copyright (c) 2016-2018 Karbowanec developers
-// Copyright (c) 2018 Brazukcoin developers
+// Copyright (c) 2016 Karbowanec developers
 //
 // This file is part of Bytecoin.
 //
@@ -107,12 +106,13 @@ void HttpServer::acceptLoop() {
     BOOST_SCOPE_EXIT_ALL(this, &connection) { 
       m_connections.erase(&connection); };
 
-	//auto addr = connection.getPeerAddressAndPort();
 	auto addr = std::pair<System::Ipv4Address, uint16_t>(static_cast<System::Ipv4Address>(0), 0);
 	try {
 		addr = connection.getPeerAddressAndPort();
-	} catch (std::runtime_error&) {
-		logger(WARNING) << "Could not get IP of connection";
+	}
+	catch (std::runtime_error&) {
+		addr.first = static_cast<System::Ipv4Address>(0);
+		addr.second = 0;
 	}
 
     logger(DEBUGGING) << "Incoming connection from " << addr.first.toDottedDecimal() << ":" << addr.second;
@@ -127,8 +127,7 @@ void HttpServer::acceptLoop() {
       HttpRequest req;
       HttpResponse resp;
 	  resp.addHeader("Access-Control-Allow-Origin", "*");
-	  resp.addHeader("content-type", "application/json");
-	
+
       parser.receiveRequest(stream, req);
 				if (authenticate(req)) {
 					processRequest(req, resp);
@@ -154,27 +153,23 @@ void HttpServer::acceptLoop() {
   }
 }
 
-bool HttpServer::authenticate(const HttpRequest& request) const {
-	if (!m_credentials.empty()) {
-		auto headerIt = request.getHeaders().find("authorization");
-		if (headerIt == request.getHeaders().end()) {
-			return false;
+	bool HttpServer::authenticate(const HttpRequest& request) const {
+		if (!m_credentials.empty()) {
+			auto headerIt = request.getHeaders().find("authorization");
+			if (headerIt == request.getHeaders().end()) {
+				return false;
+			}
+
+			if (headerIt->second.substr(0, 6) != "Basic ") {
+				return false;
+			}
+
+			if (headerIt->second.substr(6) != m_credentials) {
+				return false;
+			}
 		}
 
-		if (headerIt->second.substr(0, 6) != "Basic ") {
-			return false;
-		}
-
-		if (headerIt->second.substr(6) != m_credentials) {
-			return false;
-		}
+		return true;
 	}
-
-	return true;
-}
-
-size_t HttpServer::get_connections_count() const {
-	return m_connections.size();
-}
 
 }

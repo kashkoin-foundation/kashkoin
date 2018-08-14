@@ -1,11 +1,22 @@
-Release notes Kashkoin 1.5.2
+Release notes Kashkoin 1.4.6
 
-- V5 fork to fix chain
-- Fork to V4 block height.
-- Zawy LWMA Difficulty algorithm
-- Added checkpoint
-- New future block time limit
-- Simplewallet improvements, new commands and RPC methods
-- Various bugfixes
+- Android platform support
+- Added logging to blockchain synchronizer
+- Refactored mnemonics
+- Fixed memory leaks in mnemonics
+- Fixed memory leak in simplewallet
+- Fixed memory leak in cn_slow_hash
+- Minor optimization of JSON KV-serializer
+- LoggerMessage implementation is now platform-independent
 
-Special thanks to @bm and @vortefoto for the great help!
+Release notes Kashkoin 1.4.5
+
+- Deterministic wallets and Mnemonic seed, courtesy of Monero Developers
+- Various build fixes
+- Transactions confirmations in RPC response for walletd
+- Log file location for simplewallet
+- New RPC methods
+- Support for solo GPU mining
+
+
+Bytecoin project is moved to GitHub

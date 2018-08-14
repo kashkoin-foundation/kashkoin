@@ -1,6 +1,6 @@
-Kashkoin is a Virtual Currency with open source code that allows everyone to take part in the Kashkoin network development.
+kashkoin is a anonymous digital currency that is secure, private, and untraceable. It is open-source, nobody owns or controls Kashkoin and everyone can take part.
 
-## Building Kashkoin
+## Building Kashkoin 
 
 ### On *nix
 

@@ -45,9 +45,6 @@
 #include "Wallet/WalletErrors.h"
 #include "Wallet/WalletUtils.h"
 #include "WalletServiceErrorCategory.h"
-#include "ITransfersContainer.h"
-
-using namespace CryptoNote;
 
 namespace PaymentService {
 
@@ -192,9 +189,7 @@ std::vector<CryptoNote::TransactionsInBlockInfo> filterTransactions(
       }
     }
 
-    if (!block.transactions.empty()) {
-      result.push_back(std::move(item));
-    }
+    result.push_back(std::move(item));
   }
 
   return result;
@@ -457,7 +452,7 @@ std::error_code WalletService::replaceWithNewWallet(const std::string& viewSecre
   return std::error_code();
 }
 
-std::error_code WalletService::createAddress(const std::string& spendSecretKeyText, bool reset, std::string& address) {
+std::error_code WalletService::createAddress(const std::string& spendSecretKeyText, std::string& address) {
   try {
     System::EventLock lk(readyEvent);
 
@@ -469,7 +464,7 @@ std::error_code WalletService::createAddress(const std::string& spendSecretKeyTe
       return make_error_code(CryptoNote::error::WalletServiceErrorCode::WRONG_KEY_FORMAT);
     }
 
-	address = wallet.createAddress(secretKey, reset);
+    address = wallet.createAddress(secretKey);
   } catch (std::system_error& x) {
     logger(Logging::WARNING, Logging::BRIGHT_YELLOW) << "Error while creating address: " << x.what();
     return x.code();
@@ -678,8 +673,8 @@ std::error_code WalletService::getTransactions(const std::vector<std::string>& a
 
 	std::vector<TransactionsInBlockRpcInfo> txs = getRpcTransactions(blockHash, blockCount, transactionFilter);
 	for (TransactionsInBlockRpcInfo& b : txs){
-		for (TransactionRpcInfo& t : b.transactions) {
-			t.confirmations = (t.blockIndex != UNCONFIRMED_TRANSACTION_GLOBAL_OUTPUT_INDEX ? wallet.getBlockCount() - t.blockIndex : 0);
+		for (TransactionRpcInfo& t : b.transactions){
+			t.confirmations = wallet.getBlockCount() - t.blockIndex;
 		}
 	}
 	transactions = txs;
@@ -708,8 +703,8 @@ std::error_code WalletService::getTransactions(const std::vector<std::string>& a
 
 	std::vector<TransactionsInBlockRpcInfo> txs = getRpcTransactions(firstBlockIndex, blockCount, transactionFilter);
 	for (TransactionsInBlockRpcInfo& b : txs){
-		for (TransactionRpcInfo& t : b.transactions) {
-			t.confirmations = (t.blockIndex != UNCONFIRMED_TRANSACTION_GLOBAL_OUTPUT_INDEX ? wallet.getBlockCount() - t.blockIndex : 0);
+		for (TransactionRpcInfo& t : b.transactions){
+			t.confirmations = wallet.getBlockCount() - t.blockIndex;
 		}
 	}
 	transactions = txs;
@@ -737,7 +732,7 @@ std::error_code WalletService::getTransaction(const std::string& transactionHash
     }
 
 	TransactionRpcInfo tempTrans = convertTransactionWithTransfersToTransactionRpcInfo(transactionWithTransfers);
-	tempTrans.confirmations = (transactionWithTransfers.transaction.blockHeight != UNCONFIRMED_TRANSACTION_GLOBAL_OUTPUT_INDEX ? wallet.getBlockCount() - transactionWithTransfers.transaction.blockHeight : 0);
+	tempTrans.confirmations = wallet.getBlockCount() - transactionWithTransfers.transaction.blockHeight;
 	transaction = tempTrans;
 
   } catch (std::system_error& x) {

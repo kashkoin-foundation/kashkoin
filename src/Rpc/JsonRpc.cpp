@@ -17,7 +17,6 @@
 
 #include "JsonRpc.h"
 #include "Rpc/HttpClient.h"
-#include "CryptoNoteCore/TransactionPool.h"
 
 namespace CryptoNote {
 

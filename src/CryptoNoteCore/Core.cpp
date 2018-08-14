@@ -1,5 +1,4 @@
 // Copyright (c) 2012-2016, The CryptoNote developers, The Bytecoin developers, The Karbowanec developers
-// Copyright (c) 2018, The Brazukcoin developers
 //
 // This file is part of Bytecoin.
 //
@@ -23,7 +22,6 @@
 #include "../CryptoNoteConfig.h"
 #include "../Common/CommandLine.h"
 #include "../Common/Util.h"
-#include "../Common/Math.h"
 #include "../Common/StringTools.h"
 #include "../crypto/crypto.h"
 #include "../CryptoNoteProtocol/CryptoNoteProtocolDefinitions.h"
@@ -185,7 +183,7 @@ size_t core::addChain(const std::vector<const IBlock*>& chain) {
 
     block_verification_context bvc = boost::value_initialized<block_verification_context>();
     m_blockchain.addNewBlock(block->getBlock(), bvc);
-    if (bvc.m_marked_as_orphaned || bvc.m_verification_failed) {
+    if (bvc.m_marked_as_orphaned || bvc.m_verifivation_failed) {
       logger(ERROR, BRIGHT_RED) << "core::addChain() failed to handle incoming block " << get_block_hash(block->getBlock()) <<
         ", " << blocksCounter << "/" << chain.size();
       break;
@@ -204,7 +202,7 @@ bool core::handle_incoming_tx(const BinaryArray& tx_blob, tx_verification_contex
 
   if (tx_blob.size() > m_currency.maxTxSize()) {
     logger(INFO) << "WRONG TRANSACTION BLOB, too big size " << tx_blob.size() << ", rejected";
-    tvc.m_verification_failed = true;
+    tvc.m_verifivation_failed = true;
     return false;
   }
 
@@ -214,7 +212,7 @@ bool core::handle_incoming_tx(const BinaryArray& tx_blob, tx_verification_contex
 
   if (!parse_tx_from_blob(tx, tx_hash, tx_prefixt_hash, tx_blob)) {
     logger(INFO) << "WRONG TRANSACTION BLOB, Failed to parse, rejected";
-    tvc.m_verification_failed = true;
+    tvc.m_verifivation_failed = true;
     return false;
   }
   //std::cout << "!"<< tx.inputs.size() << std::endl;
@@ -230,6 +228,7 @@ bool core::get_stat_info(core_stat_info& st_inf) {
   st_inf.top_block_id_str = Common::podToHex(m_blockchain.getTailId());
   return true;
 }
+
 
 bool core::check_tx_semantic(const Transaction& tx, bool keeped_by_block) {
   if (!tx.inputs.size()) {
@@ -343,10 +342,7 @@ bool core::add_new_tx(const Transaction& tx, const Crypto::Hash& tx_hash, size_t
   return m_mempool.add_tx(tx, tx_hash, blob_size, tvc, keeped_by_block);
 }
 
-bool core::get_block_template(
-    Block& b, const AccountPublicAddress& adr, difficulty_type& diffic,
-    uint32_t& height, const BinaryArray& ex_nonce) {
-  
+bool core::get_block_template(Block& b, const AccountPublicAddress& adr, difficulty_type& diffic, uint32_t& height, const BinaryArray& ex_nonce) {
   size_t median_size;
   uint64_t already_generated_coins;
 
@@ -363,20 +359,11 @@ bool core::get_block_template(
     b.majorVersion = m_blockchain.getBlockMajorVersionForHeight(height);
 
     if (b.majorVersion == BLOCK_MAJOR_VERSION_1) {
-      b.minorVersion = m_currency.upgradeHeight(BLOCK_MAJOR_VERSION_2) == UpgradeDetectorBase::UNDEF_HEIGHT ?
-        BLOCK_MINOR_VERSION_1 : BLOCK_MINOR_VERSION_0;
-    }
-    else if (b.majorVersion >= BLOCK_MAJOR_VERSION_2) {
-      if (m_currency.upgradeHeight(BLOCK_MAJOR_VERSION_5) == UpgradeDetectorBase::UNDEF_HEIGHT) {
-        b.minorVersion = b.majorVersion == BLOCK_MAJOR_VERSION_4 ? BLOCK_MINOR_VERSION_1 : BLOCK_MINOR_VERSION_0;
-      }
-      else if (m_currency.upgradeHeight(BLOCK_MAJOR_VERSION_4) == UpgradeDetectorBase::UNDEF_HEIGHT) {
-        b.minorVersion = b.majorVersion == BLOCK_MAJOR_VERSION_3 ? BLOCK_MINOR_VERSION_1 : BLOCK_MINOR_VERSION_0;
-      }
-      else if (m_currency.upgradeHeight(BLOCK_MAJOR_VERSION_3) == UpgradeDetectorBase::UNDEF_HEIGHT) {
+      b.minorVersion = m_currency.upgradeHeight(BLOCK_MAJOR_VERSION_2) == UpgradeDetectorBase::UNDEF_HEIGHT ? BLOCK_MINOR_VERSION_1 : BLOCK_MINOR_VERSION_0;
+    } else if (b.majorVersion >= BLOCK_MAJOR_VERSION_2) {
+      if (m_currency.upgradeHeight(BLOCK_MAJOR_VERSION_3) == UpgradeDetectorBase::UNDEF_HEIGHT) {
         b.minorVersion = b.majorVersion == BLOCK_MAJOR_VERSION_2 ? BLOCK_MINOR_VERSION_1 : BLOCK_MINOR_VERSION_0;
-      }
-      else {
+      } else {
         b.minorVersion = BLOCK_MINOR_VERSION_0;
       }
 
@@ -386,29 +373,13 @@ bool core::get_block_template(
       TransactionExtraMergeMiningTag mm_tag = boost::value_initialized<decltype(mm_tag)>();
 
       if (!appendMergeMiningTagToExtra(b.parentBlock.baseTransaction.extra, mm_tag)) {
-        logger(ERROR, BRIGHT_RED)
-          << "Failed to append merge mining tag to extra of the parent block miner transaction";
+        logger(ERROR, BRIGHT_RED) << "Failed to append merge mining tag to extra of the parent block miner transaction";
         return false;
       }
     }
 
     b.previousBlockHash = get_tail_id();
     b.timestamp = time(NULL);
-
-    // Don't generate a block template with invalid timestamp
-    // Fix by Jagerman
-    // https://github.com/graft-project/GraftNetwork/pull/118/commits
-
-    if(height >= m_currency.timestampCheckWindow()) {
-      std::vector<uint64_t> timestamps;
-      for(size_t offset = height - m_currency.timestampCheckWindow(); offset < height; ++offset) {
-        timestamps.push_back(m_blockchain.getBlockTimestamp(offset));
-      }
-      uint64_t median_ts = Common::medianValue(timestamps);
-      if (b.timestamp < median_ts) {
-          b.timestamp = median_ts;
-      }
-    }
 
     median_size = m_blockchain.getCurrentCumulativeBlocksizeLimit() / 2;
     already_generated_coins = m_blockchain.getCoinsInCirculation();
@@ -517,7 +488,7 @@ bool core::handle_block_found(Block& b) {
   block_verification_context bvc = boost::value_initialized<block_verification_context>();
   handle_incoming_block(b, bvc, true, true);
 
-  if (bvc.m_verification_failed) {
+  if (bvc.m_verifivation_failed) {
     logger(ERROR) << "mined block failed verification";
   }
 
@@ -563,14 +534,14 @@ void core::getPoolChanges(const std::vector<Crypto::Hash>& knownTxsIds, std::vec
 bool core::handle_incoming_block_blob(const BinaryArray& block_blob, block_verification_context& bvc, bool control_miner, bool relay_block) {
   if (block_blob.size() > m_currency.maxBlockBlobSize()) {
     logger(INFO) << "WRONG BLOCK BLOB, too big size " << block_blob.size() << ", rejected";
-    bvc.m_verification_failed = true;
+    bvc.m_verifivation_failed = true;
     return false;
   }
 
   Block b;
   if (!fromBinaryArray(b, block_blob)) {
     logger(INFO) << "Failed to parse and validate new block";
-    bvc.m_verification_failed = true;
+    bvc.m_verifivation_failed = true;
     return false;
   }
 
@@ -647,13 +618,6 @@ std::vector<Transaction> core::getPoolTransactions() {
     result.emplace_back(std::move(tx));
   }
   return result;
-}
-
-std::list<CryptoNote::tx_memory_pool::TransactionDetails> core::getMemoryPool() const {
-  //std::list<CryptoNote::tx_memory_pool::TransactionDetails> txs;
-  //m_mempool.getMemoryPool(txs);
-  //return txs;
-	return m_mempool.getMemoryPool();
 }
 
 std::vector<Crypto::Hash> core::buildSparseChain() {
@@ -1032,18 +996,18 @@ uint64_t core::getTotalGeneratedAmount() {
 bool core::handleIncomingTransaction(const Transaction& tx, const Crypto::Hash& txHash, size_t blobSize, tx_verification_context& tvc, bool keptByBlock) {
   if (!check_tx_syntax(tx)) {
     logger(INFO) << "WRONG TRANSACTION BLOB, Failed to check tx " << txHash << " syntax, rejected";
-    tvc.m_verification_failed = true;
+    tvc.m_verifivation_failed = true;
     return false;
   }
 
   if (!check_tx_semantic(tx, keptByBlock)) {
     logger(INFO) << "WRONG TRANSACTION BLOB, Failed to check tx " << txHash << " semantic, rejected";
-    tvc.m_verification_failed = true;
+    tvc.m_verifivation_failed = true;
     return false;
   }
 
   bool r = add_new_tx(tx, txHash, blobSize, tvc, keptByBlock);
-  if (tvc.m_verification_failed) {
+  if (tvc.m_verifivation_failed) {
     if (!tvc.m_tx_fee_too_small) {
       logger(ERROR) << "Transaction verification failed: " << txHash;
     } else {

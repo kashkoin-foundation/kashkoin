@@ -177,8 +177,8 @@ namespace
   class getBlockReward_and_currentBlockSize : public ::testing::Test {
   public:
     getBlockReward_and_currentBlockSize() :
-        ::testing::Test(),
-        m_currency(CryptoNote::CurrencyBuilder(m_logger).
+      ::testing::Test(),
+      m_currency(CryptoNote::CurrencyBuilder(m_logger).
         blockGrantedFullRewardZone(TEST_GRANTED_FULL_REWARD_ZONE).
         moneySupply(TEST_MONEY_SUPPLY).
         emissionSpeedFactor(TEST_EMISSION_SPEED_FACTOR).
@@ -190,18 +190,14 @@ namespace
     static const uint64_t alreadyGeneratedCoins = 0;
 
     virtual void SetUp() override {
-      m_blockTooBig = !m_currency.getBlockReward(
-          BLOCK_MAJOR_VERSION_5, testMedian, 0, alreadyGeneratedCoins, 0,
-          m_standardBlockReward, m_emissionChange);
+      m_blockTooBig = !m_currency.getBlockReward(BLOCK_MAJOR_VERSION_3, testMedian, 0, alreadyGeneratedCoins, 0, m_standardBlockReward, m_emissionChange);
 
       ASSERT_FALSE(m_blockTooBig);
       ASSERT_EQ(UINT64_C(70368744177663), m_standardBlockReward);
     }
 
     void do_test(size_t currentBlockSize) {
-      m_blockTooBig = !m_currency.getBlockReward(
-          BLOCK_MAJOR_VERSION_5, testMedian, currentBlockSize, alreadyGeneratedCoins, 0,
-          m_blockReward, m_emissionChange);
+      m_blockTooBig = !m_currency.getBlockReward(BLOCK_MAJOR_VERSION_3, testMedian, currentBlockSize, alreadyGeneratedCoins, 0, m_blockReward, m_emissionChange);
     }
 
     Logging::LoggerGroup m_logger;
@@ -298,9 +294,7 @@ namespace
       uint64_t blockReward;
       int64_t emissionChange;
 
-      m_blockTooBig = !m_currency.getBlockReward(
-          BLOCK_MAJOR_VERSION_5, testMedian, testBlockSize,
-          0, 0, blockReward, emissionChange);
+      m_blockTooBig = !m_currency.getBlockReward(BLOCK_MAJOR_VERSION_3, testMedian, testBlockSize, 0, 0, blockReward, emissionChange);
 
       ASSERT_FALSE(m_blockTooBig);
       ASSERT_EQ(expectedBlockReward, blockReward);
@@ -308,10 +302,8 @@ namespace
     }
 
     void do_test(uint64_t alreadyGeneratedCoins, uint64_t fee, bool penalizeFee) {
-      uint8_t blockMajorVersion = penalizeFee ? BLOCK_MAJOR_VERSION_5 : BLOCK_MAJOR_VERSION_1;
-      m_blockTooBig = !m_currency.getBlockReward(
-          blockMajorVersion, testMedian, testBlockSize, alreadyGeneratedCoins,
-          fee, m_blockReward, m_emissionChange);
+      uint8_t blockMajorVersion = penalizeFee ? BLOCK_MAJOR_VERSION_3 : BLOCK_MAJOR_VERSION_1;
+      m_blockTooBig = !m_currency.getBlockReward(blockMajorVersion, testMedian, testBlockSize, alreadyGeneratedCoins, fee, m_blockReward, m_emissionChange);
     }
 
     Logging::LoggerGroup m_logger;
