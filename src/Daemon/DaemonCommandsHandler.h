@@ -1,4 +1,8 @@
 // Copyright (c) 2012-2016, The CryptoNote developers, The Bytecoin developers
+// Copyright (c) 2014-2018, The Monero project
+// Copyright (c) 2014-2018, The Forknote developers
+// Copyright (c) 2016-2018, The Karbowanec developers
+// Copyright (c) 2018, The Brazukcoin developers
 //
 // This file is part of Bytecoin.
 //
@@ -62,11 +66,17 @@ private:
   bool print_cn(const std::vector<std::string>& args);
   bool print_bc(const std::vector<std::string>& args);
   bool print_bci(const std::vector<std::string>& args);
+  bool print_height(const std::vector<std::string>& args);
   bool set_log(const std::vector<std::string>& args);
   bool print_block(const std::vector<std::string>& args);
   bool print_tx(const std::vector<std::string>& args);
   bool print_pool(const std::vector<std::string>& args);
   bool print_pool_sh(const std::vector<std::string>& args);
+  bool print_pool_count(const std::vector<std::string>& args);
   bool start_mining(const std::vector<std::string>& args);
   bool stop_mining(const std::vector<std::string>& args);
+  bool print_diff(const std::vector<std::string>& args);
+  bool print_ban(const std::vector<std::string>& args);
+  bool ban(const std::vector<std::string>& args);
+  bool unban(const std::vector<std::string>& args);
 };

@@ -49,9 +49,9 @@ namespace CryptoNote
 
     bool getBlockHeight(const Crypto::Hash& h, uint32_t& height) const {
       auto hi = m_index.find(h);
-      if (hi == m_index.end())
+      if (hi == m_index.end()) {
         return false;
-
+      }
       height = static_cast<uint32_t>(std::distance(m_container.begin(), m_container.project<0>(hi)));
       return true;
     }

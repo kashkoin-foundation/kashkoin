@@ -1,4 +1,5 @@
 // Copyright (c) 2012-2016, The CryptoNote developers, The Bytecoin developers
+// Copyright (c) 2018, Kashkoin developers
 //
 // This file is part of Bytecoin.
 //
@@ -29,7 +30,7 @@ RpcNodeConfiguration::RpcNodeConfiguration() {
 void RpcNodeConfiguration::initOptions(boost::program_options::options_description& desc) {
   desc.add_options()
     ("daemon-address", po::value<std::string>()->default_value("localhost"), "daemon address")
-    ("daemon-port", po::value<uint16_t>()->default_value(32348), "daemon port");
+    ("daemon-port", po::value<uint16_t>()->default_value(30965), "daemon port");
 }
 
 void RpcNodeConfiguration::init(const boost::program_options::variables_map& options) {
